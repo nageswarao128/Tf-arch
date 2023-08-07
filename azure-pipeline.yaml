@@ -1,0 +1,29 @@
+trigger:
+ branches:
+   include:
+     - main/tf-arch/*
+
+pool:
+ vmImage: 'ubuntu-latest'
+
+variables:
+ num_cpus: 2
+ ram_memory_gb: 8
+ os_disk_size_gb: 30
+ vm_name: v
+
+steps:
+ - task: AzureCLI@2
+   inputs:
+     azureSubscription: 'terraform'
+     scriptType: 'bash'
+     scriptLocation: 'inlineScript'
+     inlineScript: |
+       az account show
+       az login
+       cd tf-arch
+       terraform init
+       terraform workspace new $(Build.SourceBranchName) || terraform workspace select $(Build.SourceBranchName)
+       terraform plan -var "num_cpus=$(num_cpus)" -var "ram_memory_gb=$(ram_memory_gb)" -var "os_disk_size_gb=$(os_disk_size_gb)" -var "vm_name=$(vm_name)" -out=tfplan
+       terraform apply -auto-approve tfplan
+   displayName: 'Azure Login, Terraform Init, Plan, and Apply'
